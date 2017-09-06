@@ -1,0 +1,9 @@
+---
+# Global
+appuio_openshift_localstorage_mountpoint_parent: /data
+
+# Per volume
+appuio_openshift_localstorage_defaults: {}
+
+# Volumes
+appuio_openshift_localstorage: {}

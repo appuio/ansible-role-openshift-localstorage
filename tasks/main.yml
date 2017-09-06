@@ -1,0 +1,15 @@
+---
+- include: setup.yml
+  static: yes
+
+- name: "Configure default mountpoint directory"
+  file:
+    path: "{{ appuio_openshift_localstorage_mountpoint_parent }}"
+    owner: root
+    group: root
+    mode: 0755
+
+- include: volume.yml
+  with_dict: '{{ appuio_openshift_localstorage }}'
+  tags:
+    - always

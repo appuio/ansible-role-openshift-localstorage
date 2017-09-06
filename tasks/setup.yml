@@ -1,0 +1,9 @@
+---
+- name: Install required software
+  yum:
+    name:
+      - lvm2
+      - xfsprogs
+    state: present
+  tags:
+    - always

@@ -1,0 +1,99 @@
+---
+- set_fact:
+    settings: >
+      {{
+      dict(
+        mountpoint=(appuio_openshift_localstorage_mountpoint_parent ~ '/' ~ item.key),
+        mountopts="defaults",
+        mountperm=dict(
+          owner="root",
+          group="root",
+          mode="0755",
+          seuser="unconfined_u",
+          serole="object_r",
+          setype="default_t",
+          selevel="s0",
+        ),
+        pv_create=True,
+        pv_labels=dict(
+          hostname=(openshift_hostname | mandatory),
+        ),
+        pv_storage_class="local",
+        pv_reclaim_policy="Retain",
+      ) |
+      combine(appuio_openshift_localstorage_defaults, recursive=True) |
+      combine(item.value, recursive=True)
+      }}
+
+- debug:
+    var: settings
+
+- name: "{{ item.key }}: Create logical volume"
+  lvol:
+    vg: "{{ settings.lvm_vg | mandatory }}"
+    lv: "{{ item.key }}"
+    size: "{{ settings.size | mandatory }}"
+    opts: "--wipesignatures y --zero y"
+
+- set_fact:
+    dev: "{{ '/dev/' ~ settings.lvm_vg ~ '/' ~ item.key }}"
+
+- name: "{{ item.key }}: Create backing filesystem"
+  filesystem:
+    fstype: xfs
+    dev: "{{ dev }}"
+    opts: "-i size=512 -n size=8192"
+
+- name: "{{ item.key }}: Determine filesystem UUID"
+  command: "/sbin/blkid -c /dev/null -o value -s UUID {{ dev | quote }}"
+  register: blkid
+
+- set_fact:
+    fsuuid: "{{ blkid.stdout | trim }}"
+
+- name: "{{ item.key }}: Mount backing filesystem"
+  mount:
+    name: "{{ settings.mountpoint }}"
+    src: "UUID={{ fsuuid }}"
+    fstype: xfs
+    opts: "{{ settings.mountopts }}"
+    state: mounted
+
+- name: "{{ item.key }}: Set backing filesystem permissions"
+  vars:
+    mountperm: "{{ settings.mountperm }}"
+  file:
+    path: "{{ settings.mountpoint }}"
+    state: directory
+    owner: "{{ mountperm.owner }}"
+    group: "{{ mountperm.group }}"
+    mode: "{{ mountperm.mode }}"
+    seuser: "{{ mountperm.seuser }}"
+    serole: "{{ mountperm.serole }}"
+    setype: "{{ mountperm.setype }}"
+    selevel: "{{ mountperm.selevel }}"
+
+- when: "settings.pv_create | default(false)"
+  name: Create OpenShift PV object
+  run_once: true
+  delegate_to: "{{ groups.masters.0 | mandatory }}"
+  openshift_resource:
+    namespace: default
+    patch:
+      apiVersion: v1
+      kind: PersistentVolume
+      metadata:
+        name: "{{ item.key }}"
+        labels: "{{ settings.pv_labels }}"
+      spec:
+        capacity:
+          storage: "{{ settings.size }}"
+        hostPath:
+          path: "{{ settings.mountpoint }}"
+        accessModes:
+          - ReadWriteOnce
+          - ReadWriteMany
+        storageClassName: "{{ settings.pv_storage_class }}"
+        persistentVolumeReclaimPolicy: "{{ settings.pv_reclaim_policy }}"
+  tags:
+    - openshift-pv
