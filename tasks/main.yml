@@ -9,6 +9,10 @@
     owner: root
     group: root
     mode: 0755
+    seuser: unconfined_u
+    serole: object_r
+    setype: default_t
+    selevel: s0
 
 - include: volume.yml
   with_dict: '{{ appuio_openshift_localstorage }}'
