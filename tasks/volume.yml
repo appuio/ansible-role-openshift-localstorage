@@ -42,6 +42,7 @@
     fstype: xfs
     dev: "{{ dev }}"
     opts: "-i size=512 -n size=8192"
+    resizefs: true
 
 - name: "{{ item.key }}: Determine filesystem UUID"
   command: "/sbin/blkid -c /dev/null -o value -s UUID {{ dev | quote }}"
