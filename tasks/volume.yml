@@ -22,7 +22,8 @@
         pv_reclaim_policy="Retain",
       ) |
       combine(appuio_openshift_localstorage_defaults, recursive=True) |
-      combine(item.value, recursive=True)
+      combine(item.value, recursive=True) |
+      combine(appuio_openshift_localstorage_override, recursive=True)
       }}
 
 - debug:

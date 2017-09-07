@@ -23,6 +23,8 @@ containers as `hostPath` persistent storage objects.
 
 * `appuio_openshift_localstorage_defaults`: Default values for volume settings.
 
+* `appuio_openshift_localstorage_override`: Override values for all volumes.
+
 
 ## Example playbook
 
