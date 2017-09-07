@@ -5,6 +5,7 @@
 - name: "Configure default mountpoint directory"
   file:
     path: "{{ appuio_openshift_localstorage_mountpoint_parent }}"
+    state: directory
     owner: root
     group: root
     mode: 0755
