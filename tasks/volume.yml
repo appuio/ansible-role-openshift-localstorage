@@ -87,6 +87,9 @@
       metadata:
         name: "{{ item.key }}"
         labels: "{{ settings.pv_labels }}"
+        annotations:
+          # Required for OpenShift 3.5
+          volume.beta.kubernetes.io/storage-class: "{{ settings.pv_storage_class }}"
       spec:
         capacity:
           storage: "{{ settings.size }}"
