@@ -47,6 +47,7 @@
 
 - name: "{{ item.key }}: Determine filesystem UUID"
   command: "/sbin/blkid -c /dev/null -o value -s UUID {{ dev | quote }}"
+  changed_when: false
   register: blkid
 
 - set_fact:
