@@ -5,15 +5,13 @@
       dict(
         mountpoint=(appuio_openshift_localstorage_mountpoint_parent ~ '/' ~ item.key),
         mountopts="defaults",
-        mountperm=dict(
-          owner="root",
-          group="root",
-          mode="0755",
-          seuser="unconfined_u",
-          serole="object_r",
-          setype="default_t",
-          selevel="s0",
-        ),
+        owner="root",
+        group="root",
+        mode="0755",
+        seuser="unconfined_u",
+        serole="object_r",
+        setype="default_t",
+        selevel="s0",
         pv_create=True,
         pv_labels=dict(
           hostname=(openshift_hostname | mandatory),
@@ -62,18 +60,16 @@
     state: mounted
 
 - name: "{{ item.key }}: Set backing filesystem permissions"
-  vars:
-    mountperm: "{{ settings.mountperm }}"
   file:
     path: "{{ settings.mountpoint }}"
     state: directory
-    owner: "{{ mountperm.owner }}"
-    group: "{{ mountperm.group }}"
-    mode: "{{ mountperm.mode }}"
-    seuser: "{{ mountperm.seuser }}"
-    serole: "{{ mountperm.serole }}"
-    setype: "{{ mountperm.setype }}"
-    selevel: "{{ mountperm.selevel }}"
+    owner: "{{ settings.owner }}"
+    group: "{{ settings.group }}"
+    mode: "{{ settings.mode }}"
+    seuser: "{{ settings.seuser }}"
+    serole: "{{ settings.serole }}"
+    setype: "{{ settings.setype }}"
+    selevel: "{{ settings.selevel }}"
 
 - when: "settings.pv_create | default(false)"
   name: Create OpenShift PV object
