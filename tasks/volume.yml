@@ -7,10 +7,10 @@
         mountopts="defaults",
         owner="root",
         group="root",
-        mode="0755",
+        mode="0770",
         seuser="unconfined_u",
         serole="object_r",
-        setype="default_t",
+        setype="svirt_sandbox_file_t",
         selevel="s0",
         pv_create=True,
         pv_labels=dict(
