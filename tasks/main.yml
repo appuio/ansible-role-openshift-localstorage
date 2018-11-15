@@ -15,5 +15,3 @@
 
 - include_tasks: volume.yml
   with_dict: '{{ appuio_openshift_localstorage }}'
-  tags:
-    - always
