@@ -21,7 +21,10 @@
       ) |
       combine(appuio_openshift_localstorage_defaults, recursive=True) |
       combine(item.value, recursive=True) |
-      combine(appuio_openshift_localstorage_override, recursive=True)
+      combine(appuio_openshift_localstorage_override, recursive=True) |
+      combine(dict(
+        size=(item.value.size | human_to_bytes),
+      ))
       }}
 
 - debug:
@@ -31,7 +34,7 @@
   lvol:
     vg: "{{ settings.lvm_vg | mandatory }}"
     lv: "{{ item.key }}"
-    size: "{{ settings.size | mandatory }}"
+    size: "{{ settings.size | int }}B"
     opts: "--wipesignatures y --zero y"
 
 - set_fact:
@@ -89,7 +92,13 @@
           volume.beta.kubernetes.io/storage-class: "{{ settings.pv_storage_class }}"
       spec:
         capacity:
-          storage: "{{ settings.size }}"
+          storage: >-
+            {{
+            (
+              ((settings.size | int) / (1024.0 * 1024)) |
+              round(precision=0, method='floor') | int
+            ) ~ "Mi"
+            }}
         hostPath:
           path: "{{ settings.mountpoint }}"
         accessModes:
