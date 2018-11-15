@@ -5,5 +5,3 @@
       - lvm2
       - xfsprogs
     state: present
-  tags:
-    - always
