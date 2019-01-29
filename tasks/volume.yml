@@ -101,6 +101,13 @@
             }}
         hostPath:
           path: "{{ settings.mountpoint }}"
+        nodeAffinity:
+          required:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values: ["{{ openshift_hostname }}"]
         accessModes:
           - ReadWriteOnce
           - ReadWriteMany
