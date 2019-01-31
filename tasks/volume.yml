@@ -14,7 +14,7 @@
         selevel="s0",
         pv_create=True,
         pv_labels=dict(
-          hostname=(openshift_hostname | mandatory),
+          hostname=appuio_openshift_localstorage_node_name,
         ),
         pv_storage_class="local",
         pv_reclaim_policy="Retain",
@@ -107,7 +107,7 @@
               - matchExpressions:
                   - key: kubernetes.io/hostname
                     operator: In
-                    values: ["{{ openshift_hostname }}"]
+                    values: ["{{ appuio_openshift_localstorage_node_name }}"]
         accessModes:
           - ReadWriteOnce
           - ReadWriteMany

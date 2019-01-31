@@ -6,3 +6,5 @@ appuio_openshift_localstorage_override: {}
 
 # Volumes
 appuio_openshift_localstorage: {}
+
+appuio_openshift_localstorage_node_name: "{{ inventory_hostname }}"
