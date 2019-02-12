@@ -26,8 +26,8 @@ containers as `hostPath` persistent storage objects.
 
 * `appuio_openshift_localstorage_override`: Override values for all volumes.
 
-* `appuio_openshift_localstorage_node_name`: The OpenShift node name. Defaults
-  to `inventory_hostname`.  It must be set to the same value as
+* `appuio_openshift_localstorage_openshift_node_name`: OpenShift node name.
+  Defaults to `inventory_hostname`. Must be set to the same value as
   `openshift_kubelet_name_override`. For AWS environments, this usually is
   `ec2_private_dns_name`.
 

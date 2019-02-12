@@ -4,7 +4,9 @@ appuio_openshift_localstorage_mountpoint_parent: /data
 appuio_openshift_localstorage_defaults: {}
 appuio_openshift_localstorage_override: {}
 
+# Per node
+appuio_openshift_localstorage_openshift_node_name: >-
+  {{ appuio_openshift_localstorage_node_name | default(inventory_hostname) }}
+
 # Volumes
 appuio_openshift_localstorage: {}
-
-appuio_openshift_localstorage_node_name: "{{ inventory_hostname }}"
