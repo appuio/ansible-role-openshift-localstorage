@@ -3,6 +3,14 @@
 appuio_openshift_localstorage_mountpoint_parent: /data
 appuio_openshift_localstorage_defaults: {}
 appuio_openshift_localstorage_override: {}
+appuio_openshift_localstorage_mountopts:
+  - x-systemd.after=fcoe.service
+  - x-systemd.after=iscsi.service
+  - x-systemd.after=iscsid.service
+  - x-systemd.after=lvm2-activation.service
+  - x-systemd.after=lvm2-lvmetad.service
+  - x-systemd.after=multipathd.service
+  - x-systemd.requires=systemd-udev-settle.service
 
 # Volumes
 appuio_openshift_localstorage: {}
