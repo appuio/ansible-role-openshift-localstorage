@@ -4,7 +4,7 @@
       {{
       dict(
         mountpoint=(appuio_openshift_localstorage_mountpoint_parent ~ '/' ~ item.key),
-        mountopts="defaults",
+        mountopts=((['defaults'] + appuio_openshift_localstorage_mountopts) | unique | join(',')),
         owner="root",
         group="root",
         mode="0770",
