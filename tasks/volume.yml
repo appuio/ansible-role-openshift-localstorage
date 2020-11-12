@@ -16,6 +16,7 @@
         pv_labels=dict(
           hostname=appuio_openshift_localstorage_openshift_node_name,
         ),
+        pv_annotations=dict(),
         pv_storage_class="local",
         pv_reclaim_policy="Retain",
       ) |
@@ -87,6 +88,7 @@
       metadata:
         name: "{{ item.key }}"
         labels: "{{ settings.pv_labels }}"
+        annotations: "{{ settings.pv_annotations }}"
       spec:
         capacity:
           storage: >-

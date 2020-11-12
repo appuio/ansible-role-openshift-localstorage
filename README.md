@@ -14,6 +14,7 @@ containers as `hostPath` persistent storage objects.
   * `mountopts`: Mount options, see `mount(8)`
   * `pv_create`: Create Persistent Volume object in OpenShift
   * `pv_labels`: Dictionary with additional labels for PV object
+  * `pv_annotations`: Dictionary with additional annotations for PV object
   * `pv_storage_class`: Storage class name
   * `pv_reclaim_policy`: Reclaim policy
 
