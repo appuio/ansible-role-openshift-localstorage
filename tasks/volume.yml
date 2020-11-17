@@ -92,6 +92,8 @@
 
     - when: "settings.pv_create | default(false)"
       name: Create OpenShift PV object
+      vars:
+        l_pv_storage_class: "{{ (settings.encrypted and settings.pv_storage_class=='local') | ternary('local-luks', settings.pv_storage_class) }}"
       run_once: true
       delegate_to: "{{ groups.masters.0 | mandatory }}"
       openshift_resource:
@@ -124,7 +126,7 @@
             accessModes:
               - ReadWriteOnce
               - ReadWriteMany
-            storageClassName: "{{ settings.pv_storage_class }}"
+            storageClassName: "{{ l_pv_storage_class }}"
             persistentVolumeReclaimPolicy: "{{ settings.pv_reclaim_policy }}"
       tags:
         - openshift-pv
