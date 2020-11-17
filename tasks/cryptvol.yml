@@ -1,0 +1,34 @@
+---
+- name: "{{ item.key }}: Create and open LUKS device for LV"
+  luks_device:
+    device: "{{ dev }}"
+    state: "opened"
+    name: "{{ crypt_name }}"
+    keyfile: "{{ r_keyfile.path }}"
+
+- name: "{{ item.key }}: Remove tempfile containing LUKS key"
+  file:
+    path: "{{ r_keyfile.path }}"
+    state: "absent"
+  when: r_keyfile.path is defined
+
+- name: "{{ item.key }}: Determine LUKS device UUID"
+  command: "/sbin/blkid -c /dev/null -o value -s UUID {{ dev | quote }}"
+  changed_when: false
+  register: cryptblkid
+
+- name: "{{ item.key }}: Add LUKS device in crypttab"
+  crypttab:
+    name: "{{ crypt_name }}"
+    state: present
+    opts: luks,noauto
+    backing_device: "UUID={{ cryptblkid.stdout|trim }}"
+
+- name: Reload systemd to ensure crypttab changes are picked up
+  command: systemctl daemon-reload
+
+- name: Start systemd-cryptsetup for volume
+  command: "systemctl start systemd-cryptsetup@{{ crypt_name }}.service"
+
+- set_fact:
+    dev: "{{ '/dev/mapper/' ~ crypt_name }}"
