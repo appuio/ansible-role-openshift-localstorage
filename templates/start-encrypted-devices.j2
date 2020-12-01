@@ -1,0 +1,20 @@
+#!/bin/sh
+# Managed by Ansible role {{ ansible_role_name }}
+
+set -e
+
+if [ "$1" = "status" ]; then
+{% for dev in crypt_devices %}
+  systemctl is-active --quiet systemd-cryptsetup@{{ dev }}.service || exit 1
+{% endfor %}
+  exit 0
+fi
+
+{% for dev in crypt_devices %}
+systemctl start systemd-cryptsetup@{{ dev }}.service
+{% endfor %}
+mount -a
+echo OK
+
+exit 0
+

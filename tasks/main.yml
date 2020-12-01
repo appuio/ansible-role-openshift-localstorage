@@ -40,3 +40,14 @@
     path: "{{ r_keyfile.path }}"
     state: "absent"
   when: r_keyfile.path is defined
+
+- name: "Install /usr/local/sbin/start-encrypted-devices"
+  when: (r_crypt_devices | default([])) != []
+  vars:
+    crypt_devices: "{{ r_crypt_devices }}"
+  template:
+    dest: /usr/local/sbin/start-encrypted-devices
+    src: start-encrypted-devices.j2
+    owner: root
+    group: root
+    mode: '0755'

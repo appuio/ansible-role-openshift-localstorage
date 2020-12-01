@@ -26,3 +26,6 @@
 
 - set_fact:
     dev: "{{ '/dev/mapper/' ~ crypt_name }}"
+
+- set_fact:
+    r_crypt_devices: "{{ (r_crypt_devices|default([])) + [crypt_name] }}"
