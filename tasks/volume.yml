@@ -5,6 +5,7 @@
       dict(
         mountpoint=(appuio_openshift_localstorage_mountpoint_parent ~ '/' ~ item.key),
         mountopts=((['defaults'] + appuio_openshift_localstorage_mountopts) | unique | join(',')),
+        crypt_mountopts=(['nofail'] | join(',')),
         owner="root",
         group="root",
         mode="0770",
@@ -71,11 +72,18 @@
         fsuuid: "{{ blkid.stdout | trim }}"
 
     - name: "{{ item.key }}: Mount backing filesystem"
+      vars:
+        mountopts: >-
+          {%- if (settings.encrypted | default(false)) -%}
+            {{ [settings.mountopts, settings.crypt_mountopts]|join(",") }}
+          {%- else -%}
+            {{ settings.mountopts }}
+          {%- endif -%}
       mount:
         name: "{{ settings.mountpoint }}"
         src: "UUID={{ fsuuid }}"
         fstype: xfs
-        opts: "{{ settings.mountopts }}"
+        opts: "{{ mountopts }}"
         state: mounted
 
     - name: "{{ item.key }}: Set backing filesystem permissions"
