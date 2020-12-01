@@ -6,12 +6,6 @@
     name: "{{ crypt_name }}"
     keyfile: "{{ r_keyfile.path }}"
 
-- name: "{{ item.key }}: Remove tempfile containing LUKS key"
-  file:
-    path: "{{ r_keyfile.path }}"
-    state: "absent"
-  when: r_keyfile.path is defined
-
 - name: "{{ item.key }}: Determine LUKS device UUID"
   command: "/sbin/blkid -c /dev/null -o value -s UUID {{ dev | quote }}"
   changed_when: false
