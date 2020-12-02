@@ -4,7 +4,7 @@
     device: "{{ dev }}"
     state: "opened"
     name: "{{ crypt_name }}"
-    keyfile: "{{ r_keyfile.path }}"
+    keyfile: "{{ l_volkey_path }}"
 
 - name: "{{ item.key }}: Determine LUKS device UUID"
   command: "/sbin/blkid -c /dev/null -o value -s UUID {{ dev | quote }}"
@@ -16,6 +16,7 @@
     name: "{{ crypt_name }}"
     state: present
     opts: luks,noauto
+    password: "{{ l_volkey_path }}"
     backing_device: "UUID={{ cryptblkid.stdout|trim }}"
 
 - name: Reload systemd to ensure crypttab changes are picked up

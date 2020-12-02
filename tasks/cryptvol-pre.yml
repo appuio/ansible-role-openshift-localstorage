@@ -1,0 +1,77 @@
+---
+- set_fact:
+    l_luks_file: /etc/openshift-localstorage-key.luks
+    l_keycrypt: crypt_openshift_localstorage_key
+
+- set_fact:
+    l_volkey_mount: "/mnt/{{ l_keycrypt }}"
+
+- set_fact:
+    l_volkey_path: "{{ l_volkey_mount }}/keyfile"
+
+- name: Create file for LUKS container if it doesn't exist
+  copy:
+    content: ""
+    dest: "{{ l_luks_file }}"
+    force: no
+    owner: root
+    group: root
+    mode: 0600
+  register: r_luksfile_copy
+
+- name: Resize file for LUKS container if it's new
+  when: r_luksfile_copy.changed
+  shell: "dd if=/dev/zero of={{ l_luks_file }} count=4 bs=1M"
+
+- name: Create loop device for keyfile LUKS container
+  shell: "losetup --show -f {{ l_luks_file }}"
+  register: r_losetup
+
+- set_fact:
+    l_loopdev: "{{ r_losetup.stdout|trim }}"
+
+- name: "Create tempfile for user-provided LUKS key"
+  tempfile:
+    state: file
+    suffix: .key
+  register: r_keyfile
+
+- name: "Store user-provided LUKS key in tempfile"
+  copy:
+    dest: "{{ r_keyfile.path }}"
+    content: "{{ l_luks_key|trim }}"
+
+- name: Create LUKS container for keyfile
+  luks_device:
+    device: "{{ l_loopdev }}"
+    state: opened
+    name: "{{ l_keycrypt }}"
+    keyfile: "{{ r_keyfile.path }}"
+
+- name: Remove tempfile containing user-provided LUKS key
+  file:
+    path: "{{ r_keyfile.path }}"
+    state: absent
+
+- name: Format LUKS container for keyfile
+  filesystem:
+    fstype: ext4
+    dev: "/dev/mapper/{{ l_keycrypt }}"
+
+- name: Mount LUKS container for keyfile
+  mount:
+    name: "{{ l_volkey_mount }}"
+    src: "/dev/mapper/{{ l_keycrypt }}"
+    fstype: ext4
+    state: mounted
+    opts: "nofail"
+
+- name: Create keyfile in LUKS container
+  copy:
+    content: "{{ l_luks_key|trim }}"
+    dest: "{{ l_volkey_path }}"
+    force: no
+    owner: root
+    group: root
+    mode: 0600
+  register: r_volkey

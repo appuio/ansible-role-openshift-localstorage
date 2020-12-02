@@ -20,26 +20,13 @@
     l_luks_key: "{{ lookup('env', 'ANSIBLE_OPENSHIFT_LOCALSTORAGE_LUKS_KEY_' ~ l_node) | default('', True) }}"
 
 - when: l_luks_key != ""
-  block:
-    - name: "Create tempfile for LUKS key"
-      tempfile:
-        state: file
-        suffix: .key
-      register: r_keyfile
-
-    - name: "Store LUKS key in tempfile"
-      copy:
-        dest: "{{ r_keyfile.path }}"
-        content: "{{ l_luks_key|trim }}"
+  include_tasks: cryptvol-pre.yml
 
 - include_tasks: volume.yml
   with_dict: '{{ appuio_openshift_localstorage }}'
 
-- name: "Remove tempfile containing LUKS key"
-  file:
-    path: "{{ r_keyfile.path }}"
-    state: "absent"
-  when: r_keyfile.path is defined
+- when: l_luks_key != ""
+  include_tasks: cryptvol-post.yml
 
 - name: "Install /usr/local/sbin/start-encrypted-devices"
   when: (r_crypt_devices | default([])) != []
