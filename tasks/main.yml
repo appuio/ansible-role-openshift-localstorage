@@ -28,13 +28,3 @@
 - when: l_luks_key != ""
   include_tasks: cryptvol-post.yml
 
-- name: "Install /usr/local/sbin/start-encrypted-devices"
-  when: (r_crypt_devices | default([])) != []
-  vars:
-    crypt_devices: "{{ r_crypt_devices }}"
-  template:
-    dest: /usr/local/sbin/start-encrypted-devices
-    src: start-encrypted-devices.j2
-    owner: root
-    group: root
-    mode: '0755'
