@@ -13,5 +13,28 @@
     setype: default_t
     selevel: s0
 
+- set_fact:
+    l_node: "{{ inventory_hostname.split('.')[0] }}"
+
+- set_fact:
+    l_luks_key: "{{ lookup('env', 'ANSIBLE_OPENSHIFT_LOCALSTORAGE_LUKS_KEY_' ~ l_node) | default('', True) }}"
+
+- when: l_luks_key != ""
+  include_tasks: cryptvol-pre.yml
+
 - include_tasks: volume.yml
   with_dict: '{{ appuio_openshift_localstorage }}'
+
+- when: l_luks_key != ""
+  include_tasks: cryptvol-post.yml
+
+- name: "Install /usr/local/sbin/start-encrypted-devices"
+  when: (r_crypt_devices | default([])) != []
+  vars:
+    crypt_devices: "{{ r_crypt_devices }}"
+  template:
+    dest: /usr/local/sbin/start-encrypted-devices
+    src: start-encrypted-devices.j2
+    owner: root
+    group: root
+    mode: '0755'

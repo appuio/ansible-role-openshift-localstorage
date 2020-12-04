@@ -1,0 +1,13 @@
+---
+- name: Unmount keyfile LUKS volume
+  mount:
+    name: "/mnt/{{ l_keycrypt }}"
+    state: absent
+
+- name: Close keyfile LUKS volume
+  luks_device:
+    name: "{{ l_keycrypt }}"
+    state: closed
+
+- name: Remove keyfile loop device
+  shell: "losetup -d {{ l_loopdev }}"

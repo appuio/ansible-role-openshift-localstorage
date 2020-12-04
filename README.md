@@ -17,6 +17,11 @@ containers as `hostPath` persistent storage objects.
   * `pv_annotations`: Dictionary with additional annotations for PV object
   * `pv_storage_class`: Storage class name
   * `pv_reclaim_policy`: Reclaim policy
+  * `encrypted`: Whether to setup the localstorage volume on a LUKS-on-LVM volume.
+     Encrypted volumes are skipped if the environment variable `ANSIBLE_OPENSHIFT_LOCALSTORAGE_<node>` is not set.
+     Otherwise, the value of that variable is used as the LUKS key for all volumes on `<node>`.
+     `<node>` is constructed as `inventory_hostname.split('.')[0]`, as bash doesn't allow dots in environment variable names.
+  * `luks_key_url`: Used for informational purposes only. Can hold an arbitrary string value.
 
   Additionally permissions for the mountpoint directory can be specified. See
   [Ansible file module](https://docs.ansible.com/ansible/latest/file_module.html)

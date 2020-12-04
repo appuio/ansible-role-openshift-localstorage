@@ -1,0 +1,35 @@
+#!/bin/sh
+# Managed by Ansible role {{ ansible_role_name }}
+
+set -e
+
+unlock_keyfile() {
+  mkdir -p {{ l_volkey_mount }}
+  cryptsetup open {{ l_luks_file }} {{ l_keycrypt }}
+  mount /dev/mapper/{{ l_keycrypt }} {{ l_volkey_mount }}
+}
+
+lock_keyfile() {
+  umount {{ l_volkey_mount }}
+  cryptsetup close {{ l_keycrypt }}
+  rmdir {{ l_volkey_mount }}
+}
+
+if [ "$1" = "status" ]; then
+{% for dev in crypt_devices %}
+  systemctl is-active --quiet systemd-cryptsetup@{{ dev }}.service || exit 1
+{% endfor %}
+  exit 0
+fi
+
+unlock_keyfile
+{% for dev in crypt_devices %}
+systemctl start systemd-cryptsetup@{{ dev }}.service
+{% endfor %}
+lock_keyfile
+
+echo OK
+
+exit 0
+
+# vim: ts=2 et sw=2

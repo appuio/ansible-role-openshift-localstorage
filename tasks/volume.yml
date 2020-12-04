@@ -5,6 +5,7 @@
       dict(
         mountpoint=(appuio_openshift_localstorage_mountpoint_parent ~ '/' ~ item.key),
         mountopts=((['defaults'] + appuio_openshift_localstorage_mountopts) | unique | join(',')),
+        crypt_mountopts=(['nofail'] | join(',')),
         owner="root",
         group="root",
         mode="0770",
@@ -12,6 +13,8 @@
         serole="object_r",
         setype="svirt_sandbox_file_t",
         selevel="s0",
+        encrypted=False,
+        luks_key_url='N/A',
         pv_create=True,
         pv_labels=dict(
           hostname=appuio_openshift_localstorage_openshift_node_name,
@@ -40,77 +43,98 @@
 
 - set_fact:
     dev: "{{ '/dev/' ~ settings.lvm_vg ~ '/' ~ item.key }}"
+    crypt_name: "{{ 'crypt_' ~ settings.lvm_vg ~ '_' ~ (item.key|replace('-', '_')) }}"
 
-- name: "{{ item.key }}: Create backing filesystem"
-  filesystem:
-    fstype: xfs
-    dev: "{{ dev }}"
-    opts: "-i size=512 -n size=8192"
-    resizefs: true
+- name: "Warn if no LUKS key provided"
+  when: l_luks_key == ""
+  debug:
+    msg: "Skipping localstorage volume {{ item.key }} on node {{ inventory_hostname }}. Provide LUKS key in environment variable ANSIBLE_OPENSHIFT_LOCALSTORAGE_LUKS_KEY_{{ l_node }}. Key can be found at {{ settings.luks_key_url }}."
 
-- name: "{{ item.key }}: Determine filesystem UUID"
-  command: "/sbin/blkid -c /dev/null -o value -s UUID {{ dev | quote }}"
-  changed_when: false
-  register: blkid
+- when: not settings.encrypted or l_luks_key != ""
+  block:
+    - name: "{{ item.key }}: Set up LUKS on logical volume"
+      when: settings.encrypted and l_luks_key != ""
+      include_tasks: cryptvol.yml
 
-- set_fact:
-    fsuuid: "{{ blkid.stdout | trim }}"
+    - name: "{{ item.key }}: Create backing filesystem"
+      filesystem:
+        fstype: xfs
+        dev: "{{ dev }}"
+        opts: "-i size=512 -n size=8192"
+        resizefs: true
 
-- name: "{{ item.key }}: Mount backing filesystem"
-  mount:
-    name: "{{ settings.mountpoint }}"
-    src: "UUID={{ fsuuid }}"
-    fstype: xfs
-    opts: "{{ settings.mountopts }}"
-    state: mounted
+    - name: "{{ item.key }}: Determine filesystem UUID"
+      command: "/sbin/blkid -c /dev/null -o value -s UUID {{ dev | quote }}"
+      changed_when: false
+      register: blkid
 
-- name: "{{ item.key }}: Set backing filesystem permissions"
-  file:
-    path: "{{ settings.mountpoint }}"
-    state: directory
-    owner: "{{ settings.owner }}"
-    group: "{{ settings.group }}"
-    mode: "{{ settings.mode }}"
-    seuser: "{{ settings.seuser }}"
-    serole: "{{ settings.serole }}"
-    setype: "{{ settings.setype }}"
-    selevel: "{{ settings.selevel }}"
+    - set_fact:
+        fsuuid: "{{ blkid.stdout | trim }}"
 
-- when: "settings.pv_create | default(false)"
-  name: Create OpenShift PV object
-  run_once: true
-  delegate_to: "{{ groups.masters.0 | mandatory }}"
-  openshift_resource:
-    namespace: default
-    patch:
-      apiVersion: v1
-      kind: PersistentVolume
-      metadata:
-        name: "{{ item.key }}"
-        labels: "{{ settings.pv_labels }}"
-        annotations: "{{ settings.pv_annotations }}"
-      spec:
-        capacity:
-          storage: >-
-            {{
-            (
-              ((settings.size | int) / (1024.0 * 1024)) |
-              round(precision=0, method='floor') | int
-            ) ~ "Mi"
-            }}
-        hostPath:
-          path: "{{ settings.mountpoint }}"
-        nodeAffinity:
-          required:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - key: kubernetes.io/hostname
-                    operator: In
-                    values: ["{{ appuio_openshift_localstorage_openshift_node_name }}"]
-        accessModes:
-          - ReadWriteOnce
-          - ReadWriteMany
-        storageClassName: "{{ settings.pv_storage_class }}"
-        persistentVolumeReclaimPolicy: "{{ settings.pv_reclaim_policy }}"
-  tags:
-    - openshift-pv
+    - name: "{{ item.key }}: Mount backing filesystem"
+      vars:
+        mountopts: >-
+          {%- if (settings.encrypted | default(false)) -%}
+            {{ [settings.mountopts, settings.crypt_mountopts]|join(",") }}
+          {%- else -%}
+            {{ settings.mountopts }}
+          {%- endif -%}
+      mount:
+        name: "{{ settings.mountpoint }}"
+        src: "UUID={{ fsuuid }}"
+        fstype: xfs
+        opts: "{{ mountopts }}"
+        state: mounted
+
+    - name: "{{ item.key }}: Set backing filesystem permissions"
+      file:
+        path: "{{ settings.mountpoint }}"
+        state: directory
+        owner: "{{ settings.owner }}"
+        group: "{{ settings.group }}"
+        mode: "{{ settings.mode }}"
+        seuser: "{{ settings.seuser }}"
+        serole: "{{ settings.serole }}"
+        setype: "{{ settings.setype }}"
+        selevel: "{{ settings.selevel }}"
+
+    - when: "settings.pv_create | default(false)"
+      name: Create OpenShift PV object
+      vars:
+        l_pv_storage_class: "{{ (settings.encrypted and settings.pv_storage_class=='local') | ternary('local-luks', settings.pv_storage_class) }}"
+      run_once: true
+      delegate_to: "{{ groups.masters.0 | mandatory }}"
+      openshift_resource:
+        namespace: default
+        patch:
+          apiVersion: v1
+          kind: PersistentVolume
+          metadata:
+            name: "{{ item.key }}"
+            labels: "{{ settings.pv_labels }}"
+            annotations: "{{ settings.pv_annotations }}"
+          spec:
+            capacity:
+              storage: >-
+                {{
+                (
+                  ((settings.size | int) / (1024.0 * 1024)) |
+                  round(precision=0, method='floor') | int
+                ) ~ "Mi"
+                }}
+            hostPath:
+              path: "{{ settings.mountpoint }}"
+            nodeAffinity:
+              required:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: kubernetes.io/hostname
+                        operator: In
+                        values: ["{{ appuio_openshift_localstorage_openshift_node_name }}"]
+            accessModes:
+              - ReadWriteOnce
+              - ReadWriteMany
+            storageClassName: "{{ l_pv_storage_class }}"
+            persistentVolumeReclaimPolicy: "{{ settings.pv_reclaim_policy }}"
+      tags:
+        - openshift-pv
