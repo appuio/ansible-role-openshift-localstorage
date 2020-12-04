@@ -22,6 +22,12 @@ if [ "$1" = "status" ]; then
   exit 0
 fi
 
+{% if luks_key_url != "N/A" %}
+echo
+echo "Disk encryption key can be found at {{ luks_key_url }}"
+echo
+{% endif %}
+
 unlock_keyfile
 {% for dev in crypt_devices %}
 systemctl start systemd-cryptsetup@{{ dev }}.service

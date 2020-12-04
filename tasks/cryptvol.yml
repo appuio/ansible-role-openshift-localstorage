@@ -30,3 +30,4 @@
 
 - set_fact:
     r_crypt_devices: "{{ (r_crypt_devices|default([])) + [crypt_name] }}"
+    r_luks_key_url: "{{ settings.luks_key_url }}"
