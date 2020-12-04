@@ -28,6 +28,9 @@ systemctl start systemd-cryptsetup@{{ dev }}.service
 {% endfor %}
 lock_keyfile
 
+# Start Kubelet after unlocking localstorage volumes
+systemctl start atomic-openshift-node.service
+
 echo OK
 
 exit 0

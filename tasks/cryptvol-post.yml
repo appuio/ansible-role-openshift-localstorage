@@ -11,3 +11,44 @@
 
 - name: Remove keyfile loop device
   shell: "losetup -d {{ l_loopdev }}"
+
+- when: (r_crypt_devices | default([])) != []
+  block:
+    - name: "Install /usr/local/sbin/start-encrypted-devices"
+      vars:
+        crypt_devices: "{{ r_crypt_devices }}"
+      template:
+        dest: /usr/local/sbin/start-encrypted-devices
+        src: start-encrypted-devices.j2
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Ensure atomic-openshift-node is not started automatically
+      service:
+        name: atomic-openshift-node
+        enabled: false
+
+    - name: Ensure systemd atomic-openshift-node.service.d exists
+      file:
+        path: /etc/systemd/system/atomic-openshift-node.service.d
+        state: directory
+        owner: root
+        group: root
+        mode: 0755
+
+    - name: Setup dependencies for atomic-openshift-node
+      vars:
+        dependencies: >-
+          {%- for volume in r_crypt_devices -%}
+          systemd-cryptsetup@{{ volume }}.service
+          {% endfor -%}
+      template:
+        dest: /etc/systemd/system/atomic-openshift-node.service.d/appuio-encrypted-localstorage.conf
+        src: atomic-openshift-node-unit-deps.j2
+        owner: root
+        group: root
+        mode: 0644
+
+    - name: Reload systemd to ensure config changes are picked up
+      command: systemctl daemon-reload
